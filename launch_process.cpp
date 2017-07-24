@@ -75,6 +75,7 @@ int hpx_main(boost::program_options::variables_map &vm)
     args.push_back("--component=test_server");
     args.push_back("--set_message=accessed");
     args.push_back("--hpx:ignore-batch-env");
+    args.push_back("--hpx:attach-debugger=startup");
 
     // set up environment for launched executable
     std::vector<std::string> env = get_environment();   // current environment

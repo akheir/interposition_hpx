@@ -28,8 +28,16 @@ ENDIF()
 # Instruct cmake to find the HPX settings, it looks for HPXConfig.cmake in ${HPX_DIR}
 find_package(HPX)
 
-include_directories(${HPX_INCLUDE_DIR} /home/alireza/lib/pxfs/include/)
-link_directories(${HPX_LIBRARY_DIR} /home/alireza/lib/pxfs/lib)
+include_directories(${HPX_INCLUDE_DIR})
+link_directories(${HPX_LIBRARY_DIR})
+
+IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    include_directories(/home/alireza/lib/pxfs-debug/include/)
+    link_directories(/home/alireza/lib/pxfs-debug/lib)
+ELSEIF(CMAKE_BUILD_TYPE STREQUAL "Release")
+    include_directories(/home/alireza/lib/pxfs-release/include/)
+    link_directories(/home/alireza/lib/pxfs-release/lib)
+ENDIF()
 
 # Adjust auxiliary build settings for HPX to work properly
 IF(NOT MSVC)
