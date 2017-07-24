@@ -1,4 +1,3 @@
-//  Copyright (c) 2017 Alireza Kheirkhahan
 //  Copyright (c) 2016 Hartmut Kaiser
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -83,4 +82,3 @@ int main(int argc, char* argv[])
     // connect to the existing HPX applications
     return hpx::init(desc_commandline, argc, argv, cfg, hpx::runtime_mode_connect);
 }
-

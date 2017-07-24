@@ -1,4 +1,3 @@
-//  Copyright (c) 2017 Alireza Kheirkhahan
 //  Copyright (c) 2016 Hartmut Kaiser
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -172,4 +171,3 @@ int main(int argc, char* argv[])
 
     return hpx::util::report_errors();
 }
-
