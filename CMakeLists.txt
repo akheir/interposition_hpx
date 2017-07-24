@@ -8,6 +8,7 @@ project(interposition_hpx)
 
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 link_directories(${CMAKE_BINARY_DIR}/lib)
+include_directories(${PROJECT_SOURCE_DIR})
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
 SET(CMAKE_CXX_STANDARD 14)
@@ -27,8 +28,8 @@ ENDIF()
 # Instruct cmake to find the HPX settings, it looks for HPXConfig.cmake in ${HPX_DIR}
 find_package(HPX)
 
-include_directories(${HPX_INCLUDE_DIR})
-link_directories(${HPX_LIBRARY_DIR})
+include_directories(${HPX_INCLUDE_DIR} /home/alireza/lib/pxfs/include/)
+link_directories(${HPX_LIBRARY_DIR} /home/alireza/lib/pxfs/lib)
 
 # Adjust auxiliary build settings for HPX to work properly
 IF(NOT MSVC)
@@ -42,8 +43,24 @@ ELSE()
     ENDIF()
 ENDIF()
 
-
 add_hpx_executable(hello_world
         SOURCES hello_world.cpp
         FOLDER
-        COMPONENT_DEPENDENCIES iostreams)
+        COMPONENT_DEPENDENCIES iostreams base_file)
+
+add_subdirectory(components)
+
+add_hpx_executable(launch_process_test
+        SOURCES launch_process.cpp
+        DEPENDENCIES iostreams_component process_component
+        launch_process_test_server_component
+        EXCLUDE_FROM_ALL
+        HPX_PREFIX ${HPX_BUILD_PREFIX}
+        FOLDER)
+
+add_hpx_executable(launched_process_test
+        SOURCES launched_process.cpp
+        EXCLUDE_FROM_ALL
+        HPX_PREFIX ${HPX_BUILD_PREFIX}
+        FOLDER
+        COMPONENT_DEPENDENCIES launch_process_test_server)
