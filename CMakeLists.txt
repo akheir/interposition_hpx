@@ -57,7 +57,9 @@ add_hpx_executable(hello_world
         COMPONENT_DEPENDENCIES iostreams base_file)
 
 add_subdirectory(components)
-##add_subdirectory(tests)
+add_subdirectory(tests)
+add_subdirectory(interposition)
+
 
 add_hpx_executable(launch_process_test
         SOURCES launch_process.cpp
