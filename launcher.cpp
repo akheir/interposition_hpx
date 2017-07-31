@@ -1,3 +1,4 @@
+//  Copyright (c) 2017 Alireza Kheirkhahan
 //  Copyright (c) 2016 Hartmut Kaiser
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -8,7 +9,8 @@
 #include <hpx/include/process.hpp>
 #include <hpx/util/lightweight_test.hpp>
 
-#include <components/launch_process_test_server.hpp>
+#include <hpxio/server/local_file.hpp>
+#include <hpxio/base_file.hpp>
 
 #include <boost/filesystem.hpp>
 
@@ -72,7 +74,7 @@ int hpx_main(boost::program_options::variables_map &vm)
     std::vector<std::string> args;
     args.push_back(exe.string());
     args.push_back("--exit_code=42");
-    args.push_back("--component=test_server");
+    args.push_back("--component=test_file");
     args.push_back("--set_message=accessed");
     args.push_back("--hpx:ignore-batch-env");
 //    args.push_back("--hpx:attach-debugger=startup");
@@ -113,21 +115,15 @@ int hpx_main(boost::program_options::variables_map &vm)
             process::wait_on_latch("launch_process")   // same as above!
     );
 
-    {
-        // now create an instance of the test_server component
-        hpx::components::client<launch_process::test_server> t =
-                hpx::new_<launch_process::test_server>(hpx::find_here());
 
-        hpx::future<std::string> f =
-                hpx::async(launch_process_get_message_action(), t);
-        HPX_TEST_EQ(f.get(), std::string("initialized"));
+    {
+        hpx::io::base_file f =
+                hpx::new_<hpx::io::server::local_file>(hpx::find_here());
+
+        f.open(hpx::launch::sync, "test.txt", O_WRONLY | O_APPEND | O_CREAT);
 
         // register the component instance with AGAS
-        t.register_as("test_server");       // same as --component=<> above
-
-        // wait for the HPX locality to be up and running
-        c.wait();
-        HPX_TEST(c);
+        f.register_as("test_file");       // same as --component=<> above
 
         // the launched executable should have connected back as a new locality
         HPX_TEST_EQ(hpx::find_all_localities().size(), std::size_t(2));
@@ -136,12 +132,37 @@ int hpx_main(boost::program_options::variables_map &vm)
         int exit_code = c.wait_for_exit(hpx::launch::sync);
         HPX_TEST_EQ(exit_code, 42);
 
-        // make sure the launched process has set the message in the component
-        // this should be the same as --set_message=<> above
-        f = hpx::async(launch_process_get_message_action(), t);
-        HPX_TEST_EQ(f.get(), std::string("accessed"));
+    }
 
-    }   // release the component
+//    {
+//        // now create an instance of the test_server component
+//        hpx::components::client<launch_process::test_server> t =
+//                hpx::new_<launch_process::test_server>(hpx::find_here());
+//
+//        hpx::future<std::string> f =
+//                hpx::async(launch_process_get_message_action(), t);
+//        HPX_TEST_EQ(f.get(), std::string("initialized"));
+//
+//        // register the component instance with AGAS
+//        t.register_as("test_server");       // same as --component=<> above
+//
+//        // wait for the HPX locality to be up and running
+//        c.wait();
+//        HPX_TEST(c);
+//
+//        // the launched executable should have connected back as a new locality
+//        HPX_TEST_EQ(hpx::find_all_localities().size(), std::size_t(2));
+//
+//        // wait for it to exit, we know it returns 42 (see --exit_code=<> above)
+//        int exit_code = c.wait_for_exit(hpx::launch::sync);
+//        HPX_TEST_EQ(exit_code, 42);
+//
+//        // make sure the launched process has set the message in the component
+//        // this should be the same as --set_message=<> above
+//        f = hpx::async(launch_process_get_message_action(), t);
+//        HPX_TEST_EQ(f.get(), std::string("accessed"));
+//
+//    }   // release the component
 
     // the new locality should have disconnected now
     HPX_TEST_EQ(hpx::find_all_localities().size(), std::size_t(1));
