@@ -36,6 +36,9 @@ extern "C" {
 #include <hpx/include/run_as.hpp>
 #include <hpx/hpx_start.hpp>
 
+#include <hpxio/server/local_file.hpp>
+#include <hpxio/base_file.hpp>
+
 #define FORWARD_DECLARE(ret,name,args) \
 	ret (*__real_ ## name)args = NULL;
 #define MAP(func, ret) \
@@ -90,6 +93,21 @@ char** __argv = *_NSGetArgv();
 
 #endif
 
+/*
+ * File manipulation functions
+ *
+ * open, close, creat, read, write, close, pread, pwrite
+ *
+*/
+FORWARD_DECLARE(int, creat, (const char *path, mode_t mode));
+FORWARD_DECLARE(int, open, (const char *path, int flags, ...));
+FORWARD_DECLARE(int, close, (int fd));
+FORWARD_DECLARE(int, unlink, (const char *pathname));
+FORWARD_DECLARE(ssize_t, write, (int fd, const void *buf, size_t count));
+FORWARD_DECLARE(ssize_t, read, (int fd, void *buf, size_t count));
+FORWARD_DECLARE(ssize_t, pread, (int fd, void *buf, size_t count, off_t offset));
+FORWARD_DECLARE(ssize_t, pwrite, (int fd, const void *buf, size_t count, off_t offset));
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // This class demonstrates how to initialize a console instance of HPX
@@ -107,14 +125,15 @@ struct manage_global_runtime
 #if defined(HPX_WINDOWS)
         hpx::detail::init_winsocket();
 #endif
-
+        std::cout << "manage_global_runtime constructor " << std::endl;
         std::vector<std::string> const cfg = {
                 // make sure hpx_main is always executed
                 "hpx.run_hpx_main!=1",
                 // allow for unknown command line options
                 "hpx.commandline.allow_unknown!=1",
                 // disable HPX' short options
-                "hpx.commandline.aliasing!=0"
+                "hpx.commandline.aliasing!=0",
+                "hpx.attach_debugger!=startup"
         };
 
         using hpx::util::placeholders::_1;
@@ -203,25 +222,31 @@ private:
 manage_global_runtime init;
 
 
+struct thread_registration_wrapper
+{
+    thread_registration_wrapper(char const* name)
+    {
+        // Register this thread with HPX, this should be done once for
+        // each external OS-thread intended to invoke HPX functionality.
+        // Calling this function more than once will silently fail (will
+        // return false).
+        init.register_thread(name);
+    }
+    ~thread_registration_wrapper()
+    {
+        // Unregister the thread from HPX, this should be done once in the
+        // end before the external thread exists.
+        init.unregister_thread();
+    }
+};
 
-/*
- * File manipulation functions
- *
- * open, close, creat, read, write, close, pread, pwrite
- *
-*/
-FORWARD_DECLARE(int, creat, (const char *path, mode_t mode));
-FORWARD_DECLARE(int, open, (const char *path, int flags, ...));
-FORWARD_DECLARE(int, close, (int fd));
-FORWARD_DECLARE(int, unlink, (const char *pathname));
-FORWARD_DECLARE(ssize_t, write, (int fd, const void *buf, size_t count));
-FORWARD_DECLARE(ssize_t, read, (int fd, void *buf, size_t count));
-FORWARD_DECLARE(ssize_t, pread, (int fd, void *buf, size_t count, off_t offset));
-FORWARD_DECLARE(ssize_t, pwrite, (int fd, const void *buf, size_t count, off_t offset));
 
-__attribute__ ((noreturn)) FORWARD_DECLARE(void, exit, (int status)) ;
+bool is_pxfs(const char *path){
 
-FORWARD_DECLARE(FILE *, fopen, (const char *path, const char *mode));
+    std::string p (path);
+    return p.find("pxfs") != std::string::npos;
+}
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -233,6 +258,23 @@ DLL_PUBLIC int open(const char *path, int flags, ...) {
     std::cout << "Intercepting a call to open \"" << path << '\"' << std::endl;
 
     int ret = 0;
+
+    if (is_pxfs(path)) {
+        //thread_registration_wrapper register_thread("open_func");
+        hpx::threads::run_as_hpx_thread(
+            []() {
+                hpx::io::base_file f;
+                std::cout << "component defined" << std::endl;
+                f.connect_to("test_file");
+                std::cout << "connected to component" << std::endl;
+                hpx::serialization::serialize_buffer<char> data("test\n", 5);
+                std::cout << "initialized serialize_buffer" << std::endl;
+                std::cout << f.write(hpx::launch::sync, data) << " bytes written in test.txt" << std::endl;
+                std::cout << "wrote to file" << std::endl;
+                f.close();
+                std::cout << "closed file" << std::endl;
+            });
+    }
 
 	if ((flags & O_CREAT) == O_CREAT) {
 		va_list argf;
@@ -331,22 +373,6 @@ DLL_PUBLIC ssize_t pwrite(int fd, const void *buf, size_t count, off_t offset) {
     return ret;
 }
 
-DLL_PUBLIC void exit(int status) {
-    MAP(exit, void (*)(int));
-
-    std::cout << "Intercepting a call to exit with status = \"" << status << '\"' << std::endl;
-    __real_exit(status);
-
-//    return;
-}
-
-DLL_PUBLIC FILE * fopen(const char *path, const char *mode) {
-	MAP(fopen, FILE *(*)(const char *, const char *));
-
-	std::cout << "fopen: " << path << std::endl;
-
-	return __real_fopen(path, mode);
-}
 
 #ifdef __cplusplus
 } //extern "C" {

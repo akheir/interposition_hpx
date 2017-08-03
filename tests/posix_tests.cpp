@@ -23,9 +23,13 @@ extern "C" {
 } //extern "C" {
 #endif
 
-int main()
+int main(int args, char *argv[])
 {
-    constexpr char * test_file {"test_file"};
+    int i = 0;
+    for (i = 0; i < args; i++)
+        printf("\n%s", argv[i]);
+
+    const char * test_file {"test_file"};
     int fd_;
 
     fd_ = creat(test_file, 0644);
@@ -46,13 +50,13 @@ int main()
     }
     close(fd_);
 
-    fd_ = ::open(test_file, O_RDONLY);
+    fd_ = open(test_file, O_RDONLY);
     std::string result;
     constexpr int count = 9;
     std::unique_ptr<char> sp(new char[count]);
 
     ssize_t len = read(fd_, sp.get(), count);
     result.assign(sp.get(), sp.get() + len);
-    std::cout << result;
-    return 0;
+    std::cout << result << std::endl;
+    return 42;
 }

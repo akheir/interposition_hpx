@@ -73,10 +73,10 @@ int hpx_main(boost::program_options::variables_map &vm)
     // set up command line for launched executable
     std::vector<std::string> args;
     args.push_back(exe.string());
-    args.push_back("--exit_code=42");
+//    args.push_back("--exit_code=42");
     args.push_back("--component=test_file");
-    args.push_back("--set_message=accessed");
-    args.push_back("--hpx:ignore-batch-env");
+//    args.push_back("--set_message=accessed");
+//    args.push_back("--hpx:ignore-batch-env");
 //    args.push_back("--hpx:attach-debugger=startup");
 
     // set up environment for launched executable
@@ -103,6 +103,7 @@ int hpx_main(boost::program_options::variables_map &vm)
 
     // Instruct new locality to connect back on startup using the given name.
     env.push_back("HPX_ON_STARTUP_WAIT_ON_LATCH=launch_process");
+    env.push_back("LD_PRELOAD=/home/alireza/src/dev/interposition_hpx/cmake-build-debug/lib/libhpx_interposition.so");
 
     // launch test executable
     process::child c = process::execute(
@@ -126,7 +127,7 @@ int hpx_main(boost::program_options::variables_map &vm)
         f.register_as("test_file");       // same as --component=<> above
 
         // the launched executable should have connected back as a new locality
-        HPX_TEST_EQ(hpx::find_all_localities().size(), std::size_t(2));
+//        HPX_TEST_EQ(hpx::find_all_localities().size(), std::size_t(2));
 
         // wait for it to exit, we know it returns 42 (see --exit_code=<> above)
         int exit_code = c.wait_for_exit(hpx::launch::sync);
